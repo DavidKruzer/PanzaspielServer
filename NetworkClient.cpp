@@ -23,7 +23,6 @@ void NetworkClient::addInformationToBuffer(unsigned int type, void* informationP
 }
 
 void NetworkClient::initNetworkClient(int clientSocket) {
-	// TODO Auto-generated constructor stub
 	this->clientSocket = clientSocket;
 	listenerThread = 0;
 	clientState = CLIENT_CONNECTED;
@@ -70,6 +69,11 @@ void NetworkClient::sendGameInformation(int playerAmount)
 	sendBuffer();
 }
 
+void NetworkClient::sendRemoveProjectile(struct ProjectileInformation* projectile)
+{
+    addInformationToBuffer(200 + projectile->parent, projectile, sizeof(struct ProjectileInformation));
+}
+
 void NetworkClient::sendOtherPanzer(struct PanzerInformation* otherPanzer, int* panzerHealth, unsigned int playerAmount)
 {
 	addInformationToBuffer(50, &panzerHealth[clientNumber], sizeof(panzerHealth[0]));
@@ -90,9 +94,9 @@ void NetworkClient::sendGameFinishInformation(struct GameFinishInformation* info
 	sendBuffer();
 }
 
-void NetworkClient::sendNewProjectile(struct ProjectileInformation* projectileInformation, unsigned int projectileNumber)
+void NetworkClient::sendNewProjectile(struct ProjectileInformation* projectileInformation)
 {
-	addInformationToBuffer(1000 + projectileNumber, projectileInformation, sizeof(struct ProjectileInformation));
+	addInformationToBuffer(1000 + projectileInformation->parent, projectileInformation, sizeof(struct ProjectileInformation));
 }
 
 void* NetworkClient::listenToClient(void* parent)

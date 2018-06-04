@@ -44,7 +44,7 @@ struct PanzerInformation
 
 struct ProjectileInformation
 {
-	bool active;
+	unsigned int id;
 	unsigned int parent; //Panzer that shot the Projectile
 	float location[2];
 	float rotation;
@@ -86,7 +86,8 @@ public:
 	int startListener(void);
 	void sendGameInformation(int);
 	void sendOtherPanzer(struct PanzerInformation*, int*, unsigned int);
-	void sendNewProjectile(struct ProjectileInformation*, unsigned int);
+	void sendNewProjectile(struct ProjectileInformation*);
+    void sendRemoveProjectile(struct ProjectileInformation*);
 	void sendGameFinishInformation(struct GameFinishInformation*);
 	void sendBuffer();
 	virtual ~NetworkClient();

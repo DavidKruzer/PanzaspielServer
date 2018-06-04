@@ -19,25 +19,20 @@ void Game::newGame(int playerAmount, NetworkClient** networkClients)
 	panzerHealth = new int[playerAmount];
 
 	newProjectiles = new ProjectileInformation[playerAmount]; //Every player can max shoot one new Projectile per Update
-	allProjectiles = new ProjectileCalcInformation[maxProjectiles];
-
+	
 	for(int i = 0; i < playerAmount; i ++)
 	{
-		newProjectiles[i].active = false;
+		newProjectiles[i].id = 0;
 		panzerHealth[i] = maxHealth;
-	}
-
-	currentProjectile = 0;
-
-	gameState = PLAYING;
-
-	for(int i = 0; i < playerAmount; i++)
-	{
-		printf("Linking Player %d with new Game\n", i);
-		players[i]  = networkClients[i];
+        printf("Linking Player %d with new Game\n", i);
+		players[i] = networkClients[i];
 		players[i]->linkWithGame(&onlinePanzer[i], &newProjectiles[i], &panzerHealth[i], i);
 		players[i]->sendGameInformation(playerAmount);
 	}
+
+	currentProjectileID = 1;
+
+	gameState = PLAYING;
 }
 
 bool Game::update(float passedTime)
@@ -79,64 +74,60 @@ bool Game::update(float passedTime)
 
 		players[i]->sendOtherPanzer(onlinePanzer, panzerHealth, playerAmount);
 		//Player shot new Projectile
-		if(newProjectiles[i].active)
+		if(newProjectiles[i].id == 1)
 		{
-			if(currentProjectile >= maxProjectiles)
-			{
-				currentProjectile = 0;
-			}
-
-			memcpy(&allProjectiles[currentProjectile].projectileInformation, &newProjectiles[i], sizeof(struct ProjectileInformation));
-			allProjectiles[currentProjectile].lifetime = 0;
-			allProjectiles[currentProjectile].direction[0] = -cos(to_rad(allProjectiles[currentProjectile].projectileInformation.rotation));
-			allProjectiles[currentProjectile].direction[1] = sin(to_rad(allProjectiles[currentProjectile].projectileInformation.rotation));
-
+            allProjectiles.push_back(ProjectileCalcInformation());
+            
+            struct ProjectileCalcInformation& lastProjectile = allProjectiles.back();
+            
+			memcpy(&lastProjectile.projectileInformation, &newProjectiles[i], sizeof(struct ProjectileInformation));
+            lastProjectile.projectileInformation.id = currentProjectileID;
+            currentProjectileID += 2; // + 2, so lsb is always 1 for active projectile.
+			lastProjectile.lifetime = 0;
+			lastProjectile.direction[0] = -cos(to_rad(lastProjectile.projectileInformation.rotation));
+			lastProjectile.direction[1] = sin(to_rad(lastProjectile.projectileInformation.rotation));
+            
 			for(unsigned int i2 = 0; i2 < playerAmount; i2++)
 			{
 				//Send every Player the new Projectile
-				players[i2]->sendNewProjectile(&allProjectiles[currentProjectile].projectileInformation, currentProjectile);
+				players[i2]->sendNewProjectile(&lastProjectile.projectileInformation);
 			}
-
-			currentProjectile++;
-
-			newProjectiles[i].active = false;
+			
+			newProjectiles[i].id = 0;
 		}
 	}
 
-	for(unsigned int i = 0; i < maxProjectiles; i++)
+	for(unsigned int i = 0; i < allProjectiles.size(); i++)
 	{
-		if(allProjectiles[i].projectileInformation.active)
-		{
-			if(allProjectiles[i].lifetime < projectileLifetime)
-			{
-				allProjectiles[i].lifetime += passedTime;
-				//this projectile is active, perform move and hit detection
-				allProjectiles[i].projectileInformation.location[0] += allProjectiles[i].direction[0] * passedTime * projectileSpeed;
-				allProjectiles[i].projectileInformation.location[1] += allProjectiles[i].direction[1] * passedTime * projectileSpeed;
+        if(allProjectiles[i].lifetime < projectileLifetime)
+        {
+            allProjectiles[i].lifetime += passedTime;
+            //this projectile is active, perform move and hit detection
+            allProjectiles[i].projectileInformation.location[0] += allProjectiles[i].direction[0] * passedTime * projectileSpeed;
+            allProjectiles[i].projectileInformation.location[1] += allProjectiles[i].direction[1] * passedTime * projectileSpeed;
 
-				//Hit Detection for projectile i, with every player i2
-				for(unsigned int i2 = 0; i2 < playerAmount; i2++)
-				{
-					//Projectile doesn't effect Panzer that shot it
-					if(i2 != allProjectiles[i].projectileInformation.parent)
-					{
-						int distanceX = allProjectiles[i].projectileInformation.location[0] - onlinePanzer[i2].location[0];
-						int distanceY = allProjectiles[i].projectileInformation.location[1] - onlinePanzer[i2].location[1];
+            //Hit Detection for projectile i, with every player i2
+            for(unsigned int i2 = 0; i2 < playerAmount; i2++)
+            {
+                //Projectile doesn't effect Panzer that shot it
+                if(i2 != allProjectiles[i].projectileInformation.parent)
+                {
+                    int distanceX = allProjectiles[i].projectileInformation.location[0] - onlinePanzer[i2].location[0];
+                    int distanceY = allProjectiles[i].projectileInformation.location[1] - onlinePanzer[i2].location[1];
 
-						if((distanceX * distanceX + distanceY * distanceY) < maxHitDistanceSquared)
-						{
-							//Projectile i hit player i2
-							panzerHealth[i2]--;
-							explodeProjectile(i);
-						}
-					}
-				}
-			}
-			else
-			{
-				explodeProjectile(i);
-			}
-		}
+                    if((distanceX * distanceX + distanceY * distanceY) < maxHitDistanceSquared)
+                    {
+                        //Projectile i hit player i2
+                        panzerHealth[i2]--;
+                        explodeProjectile(i);
+                    }
+                }
+            }
+        }
+        else
+        {
+            explodeProjectile(i);
+        }
 	}
 
 	for(unsigned int i = 0; i < playerAmount; i++)
@@ -192,12 +183,12 @@ void Game::finished()
 
 void Game::explodeProjectile(unsigned int index)
 {
-	allProjectiles[index].projectileInformation.active = false;
 	for(unsigned int i = 0; i < playerAmount; i++)
 	{
 		//Send every Player the Projectile which is now inactive
-		players[i]->sendNewProjectile(&allProjectiles[index].projectileInformation, index);
+		players[i]->sendRemoveProjectile(&allProjectiles[index].projectileInformation);
 	}
+	allProjectiles.erase(allProjectiles.begin() + index);
 }
 
 Game::~Game() {
@@ -210,6 +201,4 @@ void Game::freeMemory()
 	freeMemoryDef(onlinePanzer);
 	freeMemoryDef(panzerHealth);
 	freeMemoryDef(newProjectiles);
-	freeMemoryDef(allProjectiles);
 }
-

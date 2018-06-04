@@ -16,6 +16,7 @@
 #include "NetworkClient.h"
 #include "Leaderboard.hpp"
 
+#include <vector>
 
 #include <math.h>
 
@@ -38,13 +39,13 @@ private:
 	struct PanzerInformation* onlinePanzer;
 	int* panzerHealth;
 	struct ProjectileInformation* newProjectiles;
-	struct ProjectileCalcInformation* allProjectiles;
-    unsigned int currentProjectile;
+	std::vector<ProjectileCalcInformation> allProjectiles;
+    unsigned int currentProjectileID = 1;
     const float projectileSpeed = 700.0f;
     enum GameState gameState;
     int winner; //-1 when no one, 0 ... for Player 0...
-
-	void explodeProjectile(unsigned int);
+    
+    void explodeProjectile(unsigned int);
 
 public:
 	bool update(float);
