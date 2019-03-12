@@ -40,6 +40,7 @@ bool Game::update(float passedTime)
 	if(gameState == DISCONNECTED)
 	{
 		//Game is over
+        finished();
 		return true;
 	}
 
@@ -155,6 +156,12 @@ bool Game::update(float passedTime)
 void Game::finished()
 {
 	GameFinishInformation gameFinishInformation;
+    if(gameState == DISCONNECTED)
+    {
+        gameFinishInformation.type = 2;
+        gameFinishInformation.player = winner;
+        memcpy(gameFinishInformation.playerName, players[winner]->playerName, sizeof(gameFinishInformation.playerName));
+    }
 	if(winner >= 0)
 	{
 		//Player winner won
@@ -177,8 +184,8 @@ void Game::finished()
 		players[i] = NULL;
 	}
 	gameState = FINISHED;
+    freeMemory();
 	leaderboard_Ausgabe(1);
-	freeMemory();
 }
 
 void Game::explodeProjectile(unsigned int index)

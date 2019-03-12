@@ -53,7 +53,7 @@ int NetworkClient::seperateFromGame()
 	this->myPanzerInformation = NULL;
 	this->myNewProjectile = NULL;
 	this->myPanzerHealth = NULL;
-	if(clientState == CLIENT_INGAME) clientState = CLIENT_VERIFIED;
+	clientState = CLIENT_VERIFIED;
 	return 0;
 }
 
@@ -162,9 +162,9 @@ void* NetworkClient::listenToClient(void* parent)
 				case 5:
 				{
 					//Player wants to enter queue
-					printf("Player entered Queue.\n");
 					if(myClient->clientState == CLIENT_VERIFIED)
 					{
+                        printf("Player entered Queue.\n");
 						myClient->clientState = CLIENT_INQUEUE;
 					}
 					break;
@@ -172,33 +172,33 @@ void* NetworkClient::listenToClient(void* parent)
 
 				case 99:
 				{
-					if(length < locInBuf + sizeof(struct PanzerInformation)) //Message too short
-					{
-						printf("Received Panzer too short.\n");
-						locInBuf = length;
-						break;
-					}
-					//New Panzer Information sent
-					if(myClient->myPanzerInformation != NULL)
-					{
+                    //New Panzer Information received
+                    if(myClient->clientState == CLIENT_INGAME)
+                    {
+                        if(length < locInBuf + sizeof(struct PanzerInformation)) //Message too short
+                        {
+                            printf("Received Panzer too short.\n");
+                            locInBuf = length;
+                            break;
+                        }
 						memcpy(myClient->myPanzerInformation, &buffer[locInBuf], sizeof(struct PanzerInformation));
-					}
+                    }
 					locInBuf += sizeof(struct PanzerInformation);
 					break;
 				}
 				case 98:
 				{
-					if(length < locInBuf + sizeof(struct ProjectileInformation))
-					{
-						printf("Received Projectile too short.\n");
-						locInBuf = length;
-						break;
-					}
-					//New Projectile sent
-					if(myClient->myNewProjectile != NULL)
-					{
-						memcpy(myClient->myNewProjectile, &buffer[locInBuf], sizeof(ProjectileInformation));
-					}
+                    //New Projectile received
+                    if(myClient->clientState == CLIENT_INGAME)
+                    {
+                        if(length < locInBuf + sizeof(struct ProjectileInformation))
+                        {
+                            printf("Received Projectile too short.\n");
+                            locInBuf = length;
+                            break;
+                        }
+                        memcpy(myClient->myNewProjectile, &buffer[locInBuf], sizeof(ProjectileInformation));
+                    }
 					locInBuf += sizeof(struct ProjectileInformation);
 					break;
 				}

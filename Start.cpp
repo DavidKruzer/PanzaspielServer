@@ -158,7 +158,6 @@ void* updateGames(void* info)
 					//Game is finished
 					printf("Game %d finished.\n", i);
 					activeGames[i] = false;
-					games[i].freeMemory();
 				}
 			}
 		}

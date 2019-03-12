@@ -5,16 +5,6 @@
  *      Author: david
  */
 
-
-
-
-/*
- * Leaderboard.c
- *
- *  Created on: Feb 5, 2018
- *      Author: david
- */
-
 #include "Leaderboard.hpp"
 
 leaderboardItem_t* firstLeaderboardItem = NULL;
@@ -22,8 +12,6 @@ leaderboardItem_t* firstLeaderboardItem = NULL;
 leaderboardItem_t* lastLeaderboardItem = NULL;
 
 const int leaderboard_StartPoints = 1000;
-
-int listAccessable = 1; //When list is accessed, set value to 0
 
 void removeFromList(leaderboardItem_t*);
 void addIntoList(leaderboardItem_t*, leaderboardItem_t*, leaderboardItem_t*);
